@@ -11,7 +11,11 @@ TOOLS		:=	$(DEVKITSNES)/tools
 gfx2snes	:=	gfx2snes
 
 EMUS	:=	$(DEVKITPRO)/emulators/snes
+ifeq ($(OS),Windows_NT)
 snes9x	:=	$(EMUS)/snes9x/snes9x-x64
+else
+snes9x	:=	$(EMUS)/snes9x/snes9x-gtk
+endif
 nosns	:=	$(EMUS)/nosns/nosns
 higan-p	:=	$(EMUS)/higan/higan-performance
 higan-b	:=	$(EMUS)/higan/higan-balance
