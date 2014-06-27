@@ -1,4 +1,3 @@
-# Makefile for wdc816cc nicked from devkitPro
 #--------------------------------------------------
 export 65XX	:=	$(DEVKITSNES)/65xx
 export PATH	:=	$(PATH):$(65XX)/tools:$(65XX)/bin
