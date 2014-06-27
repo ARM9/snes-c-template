@@ -1,4 +1,5 @@
 #include "video.h"
+#include "assets.h"
 
 u16 frame_count = 0;
 
@@ -35,7 +36,6 @@ void SetupVideo(void){
 	asm{cli;}
 }
 
-
 void Pulse(){
 	static u8 color_dir = 0;
 	static cmath color = {0xA0,0};
@@ -58,3 +58,4 @@ void Pulse(){
 		}
 	}
 }
+

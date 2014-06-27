@@ -5,7 +5,6 @@
 //#pragma section CODE=BANK2,offset $2:8000
 #include "main.h"
 
-
 static u8 *test_heap;
 
 void main(void){

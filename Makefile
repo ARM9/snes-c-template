@@ -3,12 +3,12 @@
 export 65XX	:=	$(DEVKITSNES)/65xx
 export PATH	:=	$(PATH):$(65XX)/tools:$(65XX)/bin
 #--------------------------------------------------
-export CC	:=	wdc816cc
-export AS	:=	wdc816as
-export LD	:=	wdcln
+export CC	:=	WDC816CC.exe
+export AS	:=	WDC816AS.exe
+export LD	:=	WDCLN.exe
 
 TOOLS		:=	$(DEVKITSNES)/tools
-gfx2snes	:=	gfx2snes
+gfx2snes	:=	$(TOOLS)/gfx2snes
 
 EMUS	:=	$(DEVKITPRO)/emulators/snes
 snes9x	:=	$(EMUS)/snes9x/snes9x-x64
@@ -98,10 +98,10 @@ clean:
 	@echo clean
 	@rm -rf $(BUILD) $(OUTPUT) $(TARGET).bnk $(TARGET).map $(LISTING)
 
-run: $(BUILD)
+run: all
 	$(snes9x) $(OUTPUT)
 
-run2: $(BUILD)
+run2: all
 	$(higan-a) $(OUTPUT)
 
 #--------------------------------------------------

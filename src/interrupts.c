@@ -1,4 +1,6 @@
 #include "interrupts.h"
+#include "joypad.h"
+#include "video.h"
 
 static s16 x_velocity = 0;
 static u16 x = 0;

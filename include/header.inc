@@ -1,29 +1,28 @@
-; Vector table
 
 SNESHEADER	.section offset $FFB0
-;Extended header
+; Extended header
 	dw	$0000
 	db	"ARM9"
-	ds 7,0
-	db	$00		;Ext RAM, only used by emulators to identify SuperFX RAM
+	ds	7,0		; fill 7 bytes
+	db	$00		; Ext RAM, only used by emulators to identify SuperFX RAM
 	;ENDS
+
 	.org $FFC0
 ;SNESHEADER	SECTION OFFSET $FFC0
-
-	db	"overscan test"		; ROM Title
+	db	"SNES C template"	; ROM Title
 ;		"                     "
 	.org $FFD5
 	db	$20		; Memory mode (slow & lo rom)
-	db	$00		; Cart type (rom only)
-	db	$09		; ROM size (4Mbit)
-	db	$00		; SRAM size (0)
+	db	$00		; Cart type (ROM only)
+	db	$08		; ROM size (2Mbit)
+	db	$00		; SRAM size (0Kbit)
 
 	db	$01		; Country code (USA)
-	db	$00		; License code
+	db	$33		; License code, some emulators care about this in edge cases, 0 or $33
 	db	$00		; Version (v 1.00)
 	
-	dw	$0000	; Checksum and complement
-	dw	$0000
+	dw	$0000	; Checksum
+	dw	$0000	; and complement
 	.ENDS
 
 VECTORS	.section offset $FFE4

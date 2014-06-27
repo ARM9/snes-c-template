@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <libsnes.h>
 
+#include "assets.h"
 #include "interrupts.h"
 #include "joypad.h"
 #include "video.h"
