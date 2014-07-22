@@ -16,15 +16,15 @@ else
 snes9x	:=	$(EMUS)/snes9x/snes9x-gtk
 endif
 nosns	:=	$(EMUS)/nosns/nosns
-higan-p	:=	$(EMUS)/higan/higan-performance
-higan-b	:=	$(EMUS)/higan/higan-balance
-higan-a	:=	$(EMUS)/higan/higan-accuracy
+higan-p	:=	$(EMUS)/../higan/higan-performance
+higan-b	:=	$(EMUS)/../higan/higan-balance
+higan-a	:=	$(EMUS)/../higan/higan-accuracy
 
 #--------------------------------------------------
 %.obj : %.c
 	$(CC) $(INCLUDE) $(CFLAGS) -O $@ $<
 
-%.obj : %.s
+%.obj : %.asm
 	$(AS) $(INCLUDE) $(ASFLAGS) -O $@ $<
 
 %.asm : %.c
@@ -67,11 +67,11 @@ export LIBSNES	:=	$(65XX)/lib/libsnes
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
 CFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-SFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
+SFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.asm)))
 # uses .asm extension to generate list files
 LISTFILES	:= $(CFILES:.c=.asm)
 
-export OFILES	:=	$(CFILES:.c=.obj) $(SFILES:.s=.obj)
+export OFILES	:=	$(CFILES:.c=.obj) $(SFILES:.asm=.obj)
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET).sfc
 
@@ -92,7 +92,8 @@ $(BUILD): $(LISTING) $(LISTFILES)
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 $(LISTING):
-	@mkdir -p $@
+	@[ -d $@ ] || mkdir -p $@
+#	@mkdir -p $@
 
 all: $(BUILD)
 	
