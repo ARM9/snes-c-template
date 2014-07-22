@@ -30,9 +30,9 @@ higan-a	:=	$(EMUS)/../higan/higan-accuracy
 %.asm : %.c
 	$(CC) $(INCLUDE) $(C2SFLAGS) -O $(LISTING)/$@ $<
 
-%.sfc : 
+%.sfc :
 	$(LD) $(LDFLAGS) $(OFILES) -LCL -O $@
-	bin2sfc $@ $@
+#	bin2sfc $@ $@
 #	padbin 0 262144 $@
 #--------------------------------------------------
 
@@ -43,7 +43,6 @@ SOURCES		:=	src
 INCLUDES	:=	include
 GRAPHICS	:=	gfx
 AUDIO		:=	audio
-
 
 CFLAGS		:=	-ML -SI -SP -WL
 #-WP warn about function calls without prototype
