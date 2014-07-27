@@ -13,10 +13,6 @@ listing/
 *.bnk
 *.rom
 *.vim
-*.swp
-*.pnproj
-*.pnps
-*.npp
 *.vcproj
 *.sln
 *.ncb
@@ -25,6 +21,7 @@ listing/
 
 .*~
 *~
+*.swp
 *.tmp
 .DS_Store
 .DS_Store?

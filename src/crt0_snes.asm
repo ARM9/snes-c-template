@@ -1,47 +1,47 @@
 
 ; SNES startup
 
-	CODE
+	code
 	
-	XREF	_BEG_DATA
-	XREF	_END_DATA
-	XREF	_ROM_BEG_DATA
-	XREF	_BEG_UDATA
-	XREF	_END_UDATA
-	XREF	~~NMI_Handler
-	XREF	~~IRQ_Handler
-	XREF	~~main
+	xref	_BEG_DATA
+	xref	_END_DATA
+	xref	_ROM_BEG_DATA
+	xref	_BEG_UDATA
+	xref	_END_UDATA
+	xref	~~NMI_Handler
+	xref	~~IRQ_Handler
+	xref	~~main
 	
-	XDEF	ClearSprites
-	XDEF	ClearVRAM
-	XDEF	ClearPalettes
-	XDEF	~~FillVRAM
+	xdef	ClearSprites
+	xdef	ClearVRAM
+	xdef	ClearPalettes
+	xdef	~~FillVRAM
 	
 
-STACK	EQU	$0FFF	; 4K stack
+_STACK_TOP	EQU	$0FFF	; 4K stack
 
 Start:
-	sei								; Disable interrupts
+	sei						; Disable interrupts
 
-	clc								; Switch to native mode
+	clc						; Switch to native mode
 	xce
 
-	LONGI	ON						; Set 16 bit index
-	LONGA	ON                        ; Set 16 bit accumulator
-	rep		#$39
+	longi	on				; Set 16 bit index
+	longa	on				; Set 16 bit accumulator
+	rep		#$39			; Also clear decimal flag
 	
-	ldx		#STACK					; Set stack address
+	ldx		#_STACK_TOP		; Set stack address
 	txs
 	
-	jml		?init_snes				; Reset hardware to known state
+	jml		?init_snes		; Reset hardware to known state
 
 ; Initialize SNES
 ?init_snes:
 	phk
 	plb
 	
-	LONGI	ON
-	LONGA	OFF
+	longi	on
+	longa	off
 	rep		#$10			; Set 16 bit index
 	sep		#$20			; Set 8 bit accumulator
 	
@@ -134,55 +134,54 @@ Start:
 	stz		$420C			; Horizontal DMA (HDMA) enable (bits 0-7)
 	stz		$420D			; ROM speed (slow/fast)
 	
-		
 	; Clear WRAM
 	ldy #$0000
-	sty $2181
-	stz $2183
+	sty $2181				; Transfer to $7E:0000
+	stz $2183				; Select first WRAM bank ($7E)
 	
-	ldx #$8008		; Fixed source byte write to $2180
-	stx $4300		
-	lda #^CONST_ZERO
+	ldx #$8008				; Fixed source byte write to $2180
+	stx $4300
 	ldx #CONST_ZERO
+	lda #^CONST_ZERO
 	
-	stx $4302
-	sta $4304
-	sty $4305
+	stx $4302				; DMA destination address
+	sta $4304				; Destination bank
+	sty $4305				; Transfer 64KiB
 	
 	lda #$01
 	sta $420B
 	nop
-	sta $420B
-	
+	sta $420B				; $2181-$2183 and $4305 wrap appropriately
+
 	ldx		#$0000
 	ldy		#$0000			; 64KiB
 	jsl		ClearVRAM
 	jsl		ClearPalettes
 	jsl		ClearSprites
 	
-	;lda		#$C0			; Automatic read first two joysticks
+	;lda		#$C0		; Automatic read first two joysticks
 	;sta		$4201
 	
 	;lda		#$81
-	;sta		$4200			; Enable V-blank, interrupt, joypad register NOPE let the programmer do this
+	;sta		$4200		; Enable V-blank, interrupt, joypad register NOPE let the programmer do this
 	
 ?init_data_section:
-	LONGA	ON
-	LONGI	ON
+	longi	on
+	longa	on
 	rep		#$30
-; Next, we want to copy the initialized data from ROM to RAM. Data must been stored in ROM at address _ROM_BEG_DATA
+; Next, we want to copy the initialized data section from ROM to RAM. Data must been stored in ROM at address _ROM_BEG_DATA
 	lda		#_END_DATA-_BEG_DATA		; Number of bytes to copy
-	beq		?SKIP						; If none, just skip
+	beq		?skip						; If none, just skip
 
 	dec		a							; Decrement size for mvn
 
-	ldx		#<_ROM_BEG_DATA				; Get source into X
-	ldy		#<_BEG_DATA					; Get dest into Y
+	ldx		#<_ROM_BEG_DATA				; Load source into X
+	ldy		#<_BEG_DATA					; Load dest into Y
 	mvn		#^_ROM_BEG_DATA,#^_BEG_DATA	; Copy bytes
 
 ; Now, clear out the uninitialized data area. We assume that it is in the same bank as DATA.
 ; Edit: no need, clear entire wram on reset already.
-?SKIP:
+?skip:
 ;	ldx		#_END_UDATA-_BEG_UDATA		; Get number of bytes to clear
 ;	beq		?DONE						; Nothing to do
 ;
@@ -199,15 +198,16 @@ Start:
 ;	dex									; Decrement count
 ;	bne		?LOOP						; Continue till done
 	
-?DONE:
+?done:
 	;phk
 	;plb			; MVN modifies dbr so change it back
+	; On second thought the C compiler might prefer dbr to stay in bank $7E
 	
-	LONGA	ON
-	LONGI	ON
+	longi	on
+	longa	on
 	rep		#$30
 	
-	lda		#$0000						; Set direct page to $0000 for no apparent reason
+	lda		#$0000				; Set direct page to $0000 for no apparent reason
 	tcd
 	
 	;cli
@@ -215,13 +215,64 @@ Start:
 	jsl		~~main
 	stp
 
+; Clear VRAM (DMA Channel 0)
+; X - Destination
+; Y - Transfer size in bytes
+ClearVRAM:
+	longi	on
+	longa	off
+	
+	lda		#$80
+	sta		$2115			; Set VRAM port to increment on writes to $2119
+	
+	stx		$2116			; Set VRAM address
+	
+	ldx		#$1809
+	stx		$4300			; Set DMA mode to fixed source, WORD to $2118/9
+
+	ldx #CONST_ZERO
+	lda #^CONST_ZERO
+	
+	stx		$4302			; Set source address to address of 0 word in rom
+	sta		$4304			; Set source bank
+	sty		$4305			; Set transfer size in bytes
+	
+	lda		#$01			; Initiate transfer
+	sta		$420B
+	
+	rtl
+
+; Clear palettes (DMA Channel 0)
+ClearPalettes:
+	longi	on
+	longa	off
+	
+	stz		$2121			; Set CGRAM Index
+	
+	ldx		#$2208
+	stx		$4300			; Set DMA mode to fixed source, BYTE to $2122
+	
+	ldx		#CONST_ZERO
+	lda		#^CONST_ZERO
+	
+	ldy		#$0200
+
+	stx		$4302
+	sta		$4304
+	sty		$4305
+	
+	lda		#$01
+	sta		$420B
+	
+	rtl
+
 ; Clear sprite table
 ClearSprites:
 	pha
 	php
 	
-	LONGI	ON
-	LONGA	OFF
+	longi	on
+	longa	off
 	rep #$10
 	sep #$20
 	
@@ -251,59 +302,6 @@ ClearSpriteLoop2:
 	pla
 	rtl
 
-; Clear VRAM (DMA Channel 0)
-; X - Destination
-; Y - Count
-ClearVRAM:
-	LONGI	ON
-	LONGA	OFF
-	
-	lda		#$80
-	sta		$2115			; Set VRAM port to increment on writes to $2119
-	
-	stx		$2116			; Set VRAM address
-	
-	ldx		#$1809
-	stx		$4300			; Set DMA mode to fixed source, WORD to $2118/9
-
-	ldx		#$0000
-	stx		$0000			; Set $00:0000 to $0000 (assumes scratchpad ram)
-	
-	stx		$4302			; Set source address to $xx:0000
-	stz		$4304			; Set source bank to $00
-	sty		$4305			; Set transfer size in bytes
-	
-	lda		#$01			; Initiate transfer
-	sta		$420B
-	
-	rtl
-
-; Clear palettes (DMA Channel 1)
-ClearPalettes:
-	LONGI	ON
-	LONGA	OFF
-	
-	lda		#$00
-	sta		$2121			; Set CGRAM Index
-	
-	ldx		#$2208
-	stx		$4300			; Set DMA mode to fixed source, BYTE to $2122
-	
-	ldx		#$0000
-	stx		$0000			; Set $00:0000 to $0000 (assumes scratchpad ram)
-	stx		$4302			; Set source address to $xx:0000
-	
-	lda		#$00
-	sta		$4304			; Set source bank to $00
-	
-	ldx		#$0200
-	stx		$4305			; Set transfer size to 512 bytes
-	
-	inc		a				; Initiate transfer
-	sta		$420B
-	
-	rtl
-
 CONST_ZERO: dw 0
 
 ; FillVRAM();
@@ -319,8 +317,8 @@ CONST_ZERO: dw 0
 	lda		#$80
 	sta		$2115			; Set VRAM port to WORD access
 
-	longa	on				; Set 16 bit accumulator
 	longi	on
+	longa	on
 	rep		#$30
 
 	lda		3+7+1, s
@@ -352,55 +350,60 @@ CONST_ZERO: dw 0
 	rtl
 
 NMIVector:
-	pha						; Push accumulator
-	phx						; Push x
-	phy						; Push y
-	php						; Push processor status
+	longi on
+	longa on
+	rep		#$30			; Safest way to preserve registers on irq
+	pha
+	phx
+	phy
 	phb
 	
 	phk
 	plb
 	
-	LONGA	OFF				; Set 8 bit accumulator
+	longa	off
 	sep		#$20
 	
 	lda		$4210			; Clear NMI Flag
 	
 ;	jsr		UpdateSprites	; Update sprites
 ;	jsr		ReadJoysticks	; Read joysticks
-	LONGA	ON
+	longa	on
 	rep		#$20
 	
 	jsl		~~NMI_Handler
 	
+	rep		#$30			; Need to restore entire word in registers
 	plb
-	plp								; Pull processor status
-	ply								; Pull y
-	plx								; Pull x
-	pla								; Pull accumulator
+	ply
+	plx
+	pla
 	rti
 
 IRQVector:
+	longi on
+	longa on
+	rep		#$30
 	pha
 	phx
 	phy
-	php
 	phb
 	
 	phk
 	plb
 	
-	LONGA	OFF
+	longa	off
 	sep		#$20
-	lda		$4211
+
+	lda		$4211			; Clear IRQ flag
 	
-	LONGA	ON
+	longa	on
 	rep		#$20
 	
 	jsl		~~IRQ_Handler
 	
+	rep		#$30
 	plb
-	plp
 	ply
 	plx
 	pla
@@ -418,6 +421,6 @@ emu_irq:
 
 	include "header.inc" ;../include/
 	
-	ENDS
-	END
+	ends
+	end
 	
