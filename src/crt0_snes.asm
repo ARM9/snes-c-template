@@ -202,6 +202,10 @@ Start:
 	;phk
 	;plb			; MVN modifies dbr so change it back
 	; On second thought the C compiler might prefer dbr to stay in bank $7E
+	; There are a number of things to take into consideration when deciding
+	; where the dbr should be located when mixing C and assembly.
+	; Including but not limited to (u)data section, far addressing, 
+	; mmio register access etc.
 	
 	longi	on
 	longa	on
