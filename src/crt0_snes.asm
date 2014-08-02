@@ -8,8 +8,8 @@
 	xref	_ROM_BEG_DATA
 	xref	_BEG_UDATA
 	xref	_END_UDATA
-	xref	~~NMI_Handler
-	xref	~~IRQ_Handler
+	xref	~~NmiHandler
+	xref	~~IrqHandler
 	xref	~~main
 	
 	xdef	ClearSprites
@@ -20,7 +20,7 @@
 
 _STACK_TOP	EQU	$0FFF	; 4K stack
 
-Start:
+_Boot:
 	sei						; Disable interrupts
 
 	clc						; Switch to native mode
@@ -132,7 +132,8 @@ Start:
 	stz		$420A			; VTIMEH
 	stz		$420B			; General DMA enable (bits 0-7)
 	stz		$420C			; Horizontal DMA (HDMA) enable (bits 0-7)
-	stz		$420D			; ROM speed (slow/fast)
+	lda		#$01			; enable fastrom
+	sta		$420D			; ROM speed (slow/fast)
 	
 	; Clear WRAM
 	ldy #$0000
@@ -353,17 +354,15 @@ CONST_ZERO: dw 0
 	
 	rtl
 
-NMIVector:
+_NmiVector:
+	jml ?faster
+?faster:
 	longi on
 	longa on
 	rep		#$30			; Safest way to preserve registers on irq
 	pha
 	phx
 	phy
-	phb
-	
-	phk
-	plb
 	
 	longa	off
 	sep		#$20
@@ -375,26 +374,23 @@ NMIVector:
 	longa	on
 	rep		#$20
 	
-	jsl		~~NMI_Handler
+	jsl		~~NmiHandler
 	
 	rep		#$30			; Need to restore entire word in registers
-	plb
 	ply
 	plx
 	pla
 	rti
 
-IRQVector:
+_IrqVector:
+	jml ?faster
+?faster:
 	longi on
 	longa on
 	rep		#$30
 	pha
 	phx
 	phy
-	phb
-	
-	phk
-	plb
 	
 	longa	off
 	sep		#$20
@@ -404,23 +400,24 @@ IRQVector:
 	longa	on
 	rep		#$20
 	
-	jsl		~~IRQ_Handler
+	jsl		~~IrqHandler
 	
 	rep		#$30
-	plb
 	ply
 	plx
 	pla
 	
-native_cop:
-native_brk:
-native_abort:
-native_unused:
-emu_nmi:
-emu_cop:
-emu_unused:
-emu_abort:
-emu_irq:
+_native_cop:
+	rti
+_native_brk:
+	stp
+_native_abort:
+_native_unused:
+_emu_nmi:
+_emu_cop:
+_emu_unused:
+_emu_abort:
+_emu_irq:
 	rti
 
 	include "header.inc" ;../include/

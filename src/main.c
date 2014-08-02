@@ -5,7 +5,10 @@
 //#pragma section CODE=BANK2,offset $2:8000
 #include "main.h"
 
-static u8 *test_heap;
+extern u8 far text;
+char *foo;
+
+u8 *test_heap;
 
 void main(void){
 	SetupVideo();
@@ -23,6 +26,7 @@ void main(void){
 		if(test_heap[6] < 15)
 			REG_INIDISP = ++test_heap[6]; // Heap test, looks awfully slow in listing
 		
+		foo = &text;
 		WaitForInterrupt;
 		++frame_count;
 	}

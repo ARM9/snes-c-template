@@ -4,6 +4,10 @@
 	.xdef ~~text
 	.xdef ~~text_size
 ~~text:
+	.ifdef DEBUG
+	.string "white",$0a,"ducks",0
+	.date
+	.endif
 	.insert text.bin
 ~~text_size:
 	.ends

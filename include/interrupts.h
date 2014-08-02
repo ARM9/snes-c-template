@@ -2,7 +2,7 @@
 #define INTERRUPTS_H
 #include <libsnes.h>
 
-void far NMI_Handler(void);
-void far IRQ_Handler(void);
+void far NmiHandler(void);
+void far IrqHandler(void);
 
 #endif //INTERRUPTS_H

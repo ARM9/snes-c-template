@@ -8,6 +8,7 @@ listing/
 *.sym
 *.spc
 *.map
+*.bak
 *.bnk
 *.rom
 *.vim

@@ -2,12 +2,12 @@
 #include "joypad.h"
 #include "video.h"
 
-static s16 x_velocity = 0;
-static u16 x = 0;
+s16 x_velocity = 0;
+static u16 x = 0; // static variables do not show up in .map
 
 static u16 prev_frame = 0;
 
-void far NMI_Handler(void){
+void far NmiHandler(void){
 	if(prev_frame == frame_count)
 		return;
 	
@@ -37,6 +37,6 @@ void far NMI_Handler(void){
 	prev_frame = frame_count;
 }
 
-void far IRQ_Handler(void){
+void far IrqHandler(void){
 	
 }

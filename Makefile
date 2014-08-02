@@ -6,6 +6,8 @@ export CC	:= WDC816CC.exe
 export AS	:= WDC816AS.exe
 export LD	:= WDCLN.exe
 
+DEBUG = 1
+
 TOOLS		:= $(DEVKITSNES)/tools
 gfx2snes	:= $(TOOLS)/gfx2snes
 
@@ -44,21 +46,21 @@ INCLUDES	:= include
 GRAPHICS	:= gfx
 AUDIO		:= audio
 
-CFLAGS		:= -ML -SI -SP -WL
+ifneq ($(DEBUG),)
+#Debug build
+CFLAGS		:= -ML -SI -SP -WL -DDEBUG
 #-WP warn about function calls without prototype
-C2SFLAGS	:= -ML -AT -SI -SP -WL
+C2SFLAGS	:= -ML -AT -SI -SP -WS -DDEBUG
+ASFLAGS		:= -S -DDEBUG
+else
+#Release build
+CFLAGS		:= -ML -SF -SI -SM -SS -SP -WL 
+#-WP warn about function calls without prototype
+C2SFLAGS	:= -ML -AT -SOP -WS
 ASFLAGS		:= -S
-LDFLAGS		:= -B -T -HB -MN80 -P00 -zCODE=8000 -C808000,8000 -K8000 -D7E1000,18000
-# section linking explanation:
-#	-D7E1000,18000
-#	Means that the data is linked in rom at $18000 (so in bank $01 lorom),
-#	while it should treat the data as if it were at $7E1000 when resolving the labels
-#	This could go haywire unless declaring all variables far, since some may be
-#	read as absolut eeven if at > $7E2000. Use far only in bigger projects where it's
-#	likely you'll exceed 4KiB of data.
+endif
 
-#-zCODE=8000 -C8000 -K8000 -D0000,1F00 -U0000,1F00
-#-LCL for stdlib
+LDFLAGS		:= -B -E -T -P00 -F ../hirom.cfg
 
 export WDC_LIB	:= $(65XX)/lib
 export LIBSNES	:= $(65XX)/lib/libsnes
