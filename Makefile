@@ -1,42 +1,11 @@
-#--------------------------------------------------
-export 65XX	:= $(DEVKITSNES)/65xx
-export PATH	:= $(PATH):$(65XX)/tools:$(65XX)/bin
-#--------------------------------------------------
-export CC	:= WDC816CC.exe
-export AS	:= WDC816AS.exe
-export LD	:= WDCLN.exe
 
-DEBUG = 1
-
-TOOLS		:= $(DEVKITSNES)/tools
-gfx2snes	:= $(TOOLS)/gfx2snes
-
-EMUS	:= $(DEVKITPRO)/emulators/snes
-ifeq ($(OS),Windows_NT)
-snes9x	:= $(EMUS)/snes9x/snes9x-x64
-else
-snes9x	:= $(EMUS)/snes9x/snes9x-gtk
+ifeq ($(strip $(DEVKITSNES)),)
+$(error "Please set DEVKITSNES in your environment. export DEVKITSNES=<path to>devkitSNES")
 endif
-nosns	:= $(EMUS)/nosns/nosns
-higan-p	:= $(EMUS)/../higan/higan-performance
-higan-b	:= $(EMUS)/../higan/higan-balance
-higan-a	:= $(EMUS)/../higan/higan-accuracy
 
-#--------------------------------------------------
-%.obj : %.c
-	$(CC) $(INCLUDE) $(CFLAGS) -O $@ $<
+include $(DEVKITSNES)/wdc816_rules.mk
 
-%.obj : %.asm
-	$(AS) $(INCLUDE) $(ASFLAGS) -O $@ $<
-
-%.asm : %.c
-	$(CC) $(INCLUDE) $(C2SFLAGS) -O $(LISTING)/$@ $<
-
-%.sfc :
-	$(LD) $(LDFLAGS) $(OFILES) -LCL -O $@
-#	bin2sfc $@ $@
-#	padbin 0 262144 $@
-#--------------------------------------------------
+DEBUG := 1
 
 TARGET		:= $(shell basename $(CURDIR))
 BUILD		:= build
@@ -55,23 +24,20 @@ ASFLAGS		:= -S -DDEBUG
 else
 #Release build
 CFLAGS		:= -ML -SF -SI -SM -SS -SP -WL 
-#-WP warn about function calls without prototype
 C2SFLAGS	:= -ML -AT -SOP -WS
 ASFLAGS		:= -S
 endif
 
-LDFLAGS		:= -B -E -T -P00 -F ../hirom.cfg
-
-export WDC_LIB	:= $(65XX)/lib
-export LIBSNES	:= $(65XX)/lib/libsnes
+CFILES		:= $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+SFILES		:= $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.asm)))
+PNGFILES	:= $(foreach dir,$(GRAPHICS),$(notdir $(wildcard $(dir)/*.png)))
+LISTFILES	:= $(CFILES:.c=.asm)
 
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 
-CFILES		:= $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
-SFILES		:= $(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.asm)))
-LISTFILES	:= $(CFILES:.c=.asm)
+export LDFLAGS	:= -B -E -T -P00 -F $(CURDIR)/hirom.cfg
 
-export OFILES	:= $(CFILES:.c=.obj) $(SFILES:.asm=.obj)
+export OFILES	:= $(CFILES:.c=.obj) $(SFILES:.asm=.obj) $(PNGFILES:.png=.obj)
 
 export OUTPUT	:= $(CURDIR)/$(TARGET).sfc
 
@@ -87,20 +53,18 @@ export VPATH	:= $(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 #--------------------------------------------------
 .PHONY: $(BUILD) $(LISTING) clean run run2
 
-$(BUILD): $(LISTING) $(LISTFILES)
+all: $(LISTING) $(LISTFILES) $(BUILD)
+	$(symfix) $(TARGET).map > $(TARGET).sym
+
+$(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
-$(LISTING):
+$(LISTING): $(CFILES)
 	@[ -d $@ ] || mkdir -p $@
-#	@mkdir -p $@
-
-all: $(BUILD)
-	
 
 clean:
-	@echo clean
-	@rm -rf $(BUILD) $(OUTPUT) $(TARGET).bnk $(TARGET).map $(LISTING)
+	rm -rf $(BUILD) $(OUTPUT) $(TARGET).bnk $(TARGET).sym $(TARGET).map $(LISTING)
 
 run: all
 	$(snes9x) $(OUTPUT)
@@ -112,5 +76,9 @@ run2: all
 else
 
 $(OUTPUT) : $(OFILES)
+
+# Convert PNG graphics
+%.asm : %.png %.grit
+	$(SNESGRIT) $<
 
 endif

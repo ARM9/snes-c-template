@@ -1,6 +1,13 @@
 
 ; SNES startup
 
+	data
+	xdef	~~NmiHandlerr
+	xdef	~~IrqHandlerr
+~~NmiHandlerr: ds 4
+~~IrqHandlerr: ds 4
+	ends
+
 	code
 	
 	xref	_BEG_DATA
@@ -18,9 +25,9 @@
 	xdef	~~FillVRAM
 	
 
-_STACK_TOP	EQU	$0FFF	; 4K stack
+_STACK_TOP	equ	$0FFF	; 4K stack
 
-_Boot:
+_Reset:
 	sei						; Disable interrupts
 
 	clc						; Switch to native mode
@@ -38,7 +45,7 @@ _Boot:
 ; Initialize SNES
 ?init_snes:
 	phk
-	plb
+	plb		; Set data bank to $00 or $80, enable absolute mmio addressing
 	
 	longi	on
 	longa	off
@@ -183,21 +190,21 @@ _Boot:
 ; Now, clear out the uninitialized data area. We assume that it is in the same bank as DATA.
 ; Edit: no need, clear entire wram on reset already.
 ?skip:
-;	ldx		#_END_UDATA-_BEG_UDATA		; Get number of bytes to clear
-;	beq		?DONE						; Nothing to do
+;	ldx		#_END_UDATA-_BEG_UDATA	; Get number of bytes to clear
+;	beq		?DONE					; Nothing to do
 ;
-;	lda		#0							; Get a zero for storing
+;	lda		#0						; Get a zero for storing
 ;
-;	LONGA	OFF							; Set 8 bit accumulator
+;	LONGA	OFF						; Set 8 bit accumulator
 ;	sep		#$20
 ;
-;	ldy		#_BEG_UDATA					; Get beginning of zeros
+;	ldy		#_BEG_UDATA				; Get beginning of zeros
 ;
 ;?LOOP:
-;	sta		|0,Y						; Clear memory
-;	iny									; Bump pointer
-;	dex									; Decrement count
-;	bne		?LOOP						; Continue till done
+;	sta		|0,Y					; Clear memory
+;	iny								; Bump pointer
+;	dex								; Decrement count
+;	bne		?LOOP					; Continue till done
 	
 ?done:
 	;phk
@@ -207,12 +214,13 @@ _Boot:
 	; where the dbr should be located when mixing C and assembly.
 	; Including but not limited to (u)data section, far addressing, 
 	; mmio register access etc.
+	; Keep dbr in bank $7E
 	
 	longi	on
 	longa	on
 	rep		#$30
 	
-	lda		#$0000				; Set direct page to $0000 for no apparent reason
+	lda		#$0000			; Set direct page to $0000 for no apparent reason
 	tcd
 	
 	;cli
@@ -311,46 +319,46 @@ CONST_ZERO: dw 0
 
 ; FillVRAM();
 ~~FillVRAM:
-	pha						; Push accumulator
-	phx						; Push x
-	phy						; Push x
-	php						; Push processor status
+	pha					; Push accumulator
+	phx					; Push x
+	phy					; Push x
+	php					; Push processor status
 	
 	longa	off
 	sep		#$20
 	
 	lda		#$80
-	sta		$2115			; Set VRAM port to WORD access
+	sta		$2115		; Set VRAM port to WORD access
 
 	longi	on
 	longa	on
 	rep		#$30
 
 	lda		3+7+1, s
-	sta		$2116			; Set VRAM address
+	sta		$2116		; Set VRAM address
 
 	ldx		#$1809
-	stx		$4300			; Set DMA mode to fixed source, WORD to $2118/9
+	stx		$4300		; Set DMA mode to fixed source, WORD to $2118/9
 
 	lda		3+7+2+1, s
-	sta		$0000			; Set $00:0000 to clear value
+	sta		$0000		; Set $00:0000 to clear value
 
 	ldx		#$0000
-	stx		$4302			; Set source address to $xx:0000
+	stx		$4302		; Set source address to $xx:0000
 
 	lda		#$00
-	sta		$4304			; Set source bank to $00
+	sta		$4304		; Set source bank to $00
 
 	lda		3+7+2+2+1, s
-	sta		$4305			; Set transfer size in bytes
+	sta		$4305		; Set transfer size in bytes
 
-	lda		#$01			; Initiate transfer
+	lda		#$01		; Initiate transfer
 	sta		$420B
 	
-	plp						; Pull processor status
-	ply						; Pull y
-	plx						; Pull x
-	pla						; Pull accumulator
+	plp					; Pull processor status
+	ply					; Pull y
+	plx					; Pull x
+	pla					; Pull accumulator
 	
 	rtl
 
@@ -359,15 +367,23 @@ _NmiVector:
 ?faster:
 	longi on
 	longa on
-	rep		#$30			; Safest way to preserve registers on irq
+	; Rationale: an interrupt may be triggered while M or I is 8 bit but 
+	; it is unknown whether the contents of the high byte in a register is
+	; important to the subroutine at a later point.
+	rep		#$30		; Safest way to preserve registers on irq
 	pha
 	phx
 	phy
+	phb
 	
 	longa	off
 	sep		#$20
 	
-	lda		$4210			; Clear NMI Flag
+	lda		>$4210		; Clear NMI Flag
+
+	lda		#$7E
+	pha
+	plb					; Make sure dbr is $7E
 	
 ;	jsr		UpdateSprites	; Update sprites
 ;	jsr		ReadJoysticks	; Read joysticks
@@ -376,11 +392,12 @@ _NmiVector:
 	
 	jsl		~~NmiHandler
 	
-	rep		#$30			; Need to restore entire word in registers
+	rep		#$30		; Need to restore entire word in registers
+	plb
 	ply
 	plx
 	pla
-	rti
+	rti					; psr is already saved on irq, hence no need to php/plp
 
 _IrqVector:
 	jml ?faster
@@ -391,18 +408,24 @@ _IrqVector:
 	pha
 	phx
 	phy
+	phb
 	
 	longa	off
 	sep		#$20
 
-	lda		$4211			; Clear IRQ flag
+	lda		>$4211		; Clear IRQ flag
 	
+	lda		#$7E
+	pha
+	plb					; Make sure dbr is $7E
+
 	longa	on
 	rep		#$20
 	
 	jsl		~~IrqHandler
 	
 	rep		#$30
+	plb
 	ply
 	plx
 	pla
@@ -420,7 +443,7 @@ _emu_abort:
 _emu_irq:
 	rti
 
-	include "header.inc" ;../include/
+	include "header.asm" ;../include/
 	
 	ends
 	end
