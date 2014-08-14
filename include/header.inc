@@ -60,20 +60,21 @@ SNESHEADER .section offset $FFB0
 	dw	$0000		; B0 - Maker code
 	db	"ARM9"		; B2 - Game code
 	ds	7,0			; B6 - fill 7 bytes
-	db	$00			; BD - Ext RAM, used by emulators to detect GSU cart RAM
-
+	db	SIZE_NONE	; BD - Ext cart RAM, used by emulators to detect GSU cart RAM
+	db	0			; BE - Special version(?)
+	db				; BF - Cartridge sub-number(?)
 	.org $FFC0
-;SNESHEADER	SECTION OFFSET $FFC0
+;SNESHEADER	.section offset $FFC0
 	db	"SNES C template      "	; C0 - ROM Title 21 bytes
 ;		"                     "
 	.org $FFD5
 	db	MODE_31				; D5 - Map mode
 	db	CART_ROM			; D6 - Cart type
 	db	SIZE_256KiB			; D7 - ROM size
-	db	SIZE_NONE			; D8 - SRAM size
-	db	DEST_USA_CANADA		; D9 - Country code
+	db	SIZE_NONE			; D8 - Cart RAM size
+	db	DEST_USA_CANADA		; D9 - Destination code (NTSC/PAL)
 	db	$33					; DA - License code, some emulators care about this in edge cases, 0 or $33
-	db	$00					; DB - Version (v 1.00)
+	db	$00					; DB - Version number (v 1.xx)
 	dw	$0000				; DC - Checksum
 	dw	$0000				; and complement
 	.ENDS

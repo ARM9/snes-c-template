@@ -443,7 +443,7 @@ _emu_abort:
 _emu_irq:
 	rti
 
-	include "header.asm" ;../include/
+	include "header.inc" ;../include/
 	
 	ends
 	end
