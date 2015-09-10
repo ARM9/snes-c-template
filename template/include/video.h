@@ -2,19 +2,18 @@
 #define VIDEO_H
 #include <libsnes.h>
 
-
 // vram constants
-#define BG1_TILESRC	0x0000
-#define BG1_MAPSRC	0x2000
+#define BG1_TILESRC 0x0000
+#define BG1_MAPSRC  0x2000
 
 void SetupVideo(void);
-void Pulse();
+void Pulse(void);
 
 //gotta test structs
 typedef struct {
-	u8 colors;
-	u8 intensity;
-}cmath;
+    u8 colors;
+    u8 intensity;
+} cmath_s;
 
 extern u16 frame_count;
 

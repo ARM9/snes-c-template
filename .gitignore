@@ -1,7 +1,7 @@
 build/
 listing/
-*.obj
 *.o
+*.d
 *.sfc
 *.smc
 *.srm
@@ -10,13 +10,13 @@ listing/
 *.map
 *.bak
 *.bnk
+*.err
+*.tmp
 *.rom
-*.vim
 
 .*~
 *~
 *.swp
-*.tmp
 .DS_Store
 .DS_Store?
 ._*
